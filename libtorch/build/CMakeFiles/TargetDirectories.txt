@@ -1,0 +1,3 @@
+/data/nextcloud/dbc2017/files/project/libtorch/build/CMakeFiles/rebuild_cache.dir
+/data/nextcloud/dbc2017/files/project/libtorch/build/CMakeFiles/edit_cache.dir
+/data/nextcloud/dbc2017/files/project/libtorch/build/CMakeFiles/dcgan.dir

@@ -1,0 +1,1 @@
+/usr/bin/c++    -rdynamic CMakeFiles/dcgan.dir/dcgan.cpp.o  -o dcgan -Wl,-rpath,/root/libtorch/lib /root/libtorch/lib/libtorch.so /root/libtorch/lib/libc10.so -Wl,--no-as-needed,/root/libtorch/lib/libtorch_cpu.so -Wl,--as-needed /root/libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,/root/libtorch/lib/libtorch.so -Wl,--as-needed 

@@ -112,6 +112,7 @@ class KeyBoard(object):
         loc_y = np.unique(np.array(loc_y))
         locy_min,locy_max = 0,0
         for y in loc_y:
+            #----这里相当于是找出纵轴y的最小值
             cmask = np.where(pmask[y]!=0)[0]
             if len(cmask)>0.3*width:
                 locy_min = y 

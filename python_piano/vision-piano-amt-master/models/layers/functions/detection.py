@@ -8,7 +8,7 @@ import torch
 
 from ..bbox_utils import decode, nms
 from torch.autograd import Function
-
+from IPython import embed
 
 class Detect(Function):
     """At test time, Detect is the final layer of SSD.  Decode location preds,
@@ -38,23 +38,32 @@ class Detect(Function):
         num = loc_data.size(0)
         num_priors = prior_data.size(0)
 
+        #---(batch,2,num_priors)
         cls_preds = cls_conf_data.view(num, num_priors, 2).transpose(2, 1)
+        #---(batch,2,num_priors)
         lr_preds = lr_conf_data.view(num,num_priors,3)[:,:,1:]
 
+        #---(num_priors,4)
         batch_priors = prior_data.view(-1, num_priors,4).expand(num, num_priors, 4)
         batch_priors = batch_priors.contiguous().view(-1, 4)
 
         decoded_boxes = decode(loc_data.view(-1, 4),batch_priors, self.variance)
         decoded_boxes = decoded_boxes.view(num, num_priors, 4)
 
+        #---(batch,2,750,7)  7=(1(pos score)+4+2)
         output = torch.zeros(num, 2, self.top_k, 7)
 
+
+        
         for i in range(num):
+            #---(num_anchors,4)
             boxes = decoded_boxes[i].clone()
             cls_scores = cls_preds[i].clone()
             lr_scores = lr_preds[i].clone()
 
+            #---取出正样本(检测到手)的score
             for cl in range(1, 2):
+                #---选出大于阈值的boxes
                 c_mask = cls_scores[cl].gt(self.conf_thresh)
                 scores = cls_scores[cl][c_mask]
                 
@@ -65,9 +74,11 @@ class Detect(Function):
 
                 lr_mask = c_mask.unsqueeze(1).expand_as(lr_scores)
                 lr_score = lr_scores[lr_mask].view(-1,2)
+                
                 if boxes_.numel() == 0:
                     continue 
                 ids, count = nms(boxes_, scores, self.nms_thresh, self.nms_top_k)
                 count = count if count < self.top_k else self.top_k
+                #---output的输出维度现在知道表示的是什么了吧
                 output[i, cl, :count] = torch.cat((scores[ids[:count]].unsqueeze(1),boxes_[ids[:count]],lr_score[ids[:count]]), 1)
         return output

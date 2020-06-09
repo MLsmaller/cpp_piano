@@ -16,33 +16,26 @@ from tqdm import tqdm
 import time 
 
 class VisAmtHelper(object):
-    def __init__(self,file_mark,
-                      midi_file=None,
-                      start_frame=0,
-                      fps=25.0,
-                      midi_offset=0,
-                      white_model = None,
-                      black_model = None,
-                      music_type='record'):
-        self.init_model_load(white_model,black_model) 
-        self.init_save_file_dir(file_mark)
+    def __init__(self):
+        self.init_model_load() 
+        # self.init_save_file_dir(file_mark)
 
-        self.midi_file = midi_file 
-        self.start_frame = start_frame
-        self.fps = fps 
-        self.midi_offset = midi_offset 
+        # self.midi_file = midi_file 
+        # self.start_frame = start_frame
+        # self.fps = fps 
+        # self.midi_offset = midi_offset 
         
-        self.detect_hand = True
-        self.post_white = True
-        self.post_black = True 
-        self.type= music_type
+        # self.detect_hand = True
+        # self.post_white = True
+        # self.post_black = True 
+        # self.type= music_type
         
 
     def init_model_load(self,white_model=None,black_model=None):
-        self.keyboard = KeyBoard()
-        self.hand_seg = SegHand()
-        self.modelproduct = ModelProduct(white_model,black_model)
-        self.bwlabel = BwLabel()
+        # self.keyboard = KeyBoard()
+        # self.hand_seg = SegHand()
+        self.modelproduct = ModelProduct()
+        # self.bwlabel = BwLabel()
        
     def init_save_file_dir(self,file_mark):
         self.base_img_dir,self.diff_img_dir,detect_img_dir,press_img_dir = new_save_dir(cfg.SAVE_IMG_DIR,file_mark)

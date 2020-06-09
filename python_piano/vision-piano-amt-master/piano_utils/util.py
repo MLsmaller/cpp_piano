@@ -107,7 +107,7 @@ def angle(v1, v2):
 
 
 def calAngle( x1,  y1,  x2,  y2):
-    angle = 0.0;
+    angle = 0.0
     dx = x2 - x1
     dy = y2 - y1
     angle = math.atan(dy/dx)
@@ -117,7 +117,7 @@ def calAngle( x1,  y1,  x2,  y2):
 def order_points(pts):
     rect = np.zeros((4, 2), dtype = "float32")
     s = pts.sum(axis = 1)
-
+    #---lt,rt,rb,lb->rect
     rect[0] = pts[np.argmin(s)]
     rect[2] = pts[np.argmax(s)]
 

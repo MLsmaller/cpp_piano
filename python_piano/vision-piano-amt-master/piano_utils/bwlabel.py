@@ -33,6 +33,28 @@ def contrast_img(img, c, b):
     dst = cv2.addWeighted(img, c, blank, 1-c, b)
     return  dst 
 
+
+def white_black_dict():
+    wh_dict={}
+    wh_dict[1]=0
+    wh_dict[2]=0
+
+    for i in range(3,53):
+        div=int(i/7)
+        if i%7==3 or i%7==4:
+            wh_dict[i]=div*5+1
+        elif i%7==5:
+            wh_dict[i]=div*5+2
+        elif i%7==6:
+            wh_dict[i]=div*5+3
+        elif i%7==0:
+            wh_dict[i]=(div-1)*5+3
+        elif i%7==1:
+            wh_dict[i]=(div-1)*5+4
+        else :
+            wh_dict[i]=(div-1)*5+5
+    return wh_dict
+
 class BwLabel(object):
     def __init__(self):
         super(BwLabel, self).__init__()
@@ -60,6 +82,7 @@ class BwLabel(object):
         if len(black_boxes)!=36:
             ori_img = contrast_img(ori_img,1.3,3)
             black_boxes,black_loc = self.find_black_boxes(ori_img)
+            
         if len(black_boxes)==37:
             area1 = black_boxes[0][2]*black_boxes[0][3]
             area2 = black_boxes[-1][2]*black_boxes[-1][3]
@@ -72,51 +95,35 @@ class BwLabel(object):
         white_loc = self.find_white_loc_old(black_loc,black_boxes,width)
         #print("the number of whitekey_num is {}".format(len(white_loc)))
         #--------找到白键所在的box---
+        wh_dict=white_black_dict()
+
         for i in range(1, len(white_loc)):
             white_x = white_loc[i - 1]
             white_width = white_loc[i] - white_x
-            # print(white_x,white_width)
-            if i == 1:
-                top_box = (white_x, 0, black_boxes[i - 1][0] - white_x, 1.1 * black_boxes[i - 1][3]) #---(x,y,w,h)
-                bottom_box=(white_x,1.1*black_boxes[i-1][3],white_width,height-1.1*black_boxes[i-1][3])
-                total_top.append(top_box)
-                total_bottom.append(bottom_box)
-            elif i==2: 
-                top_box = (black_boxes[i - 2][0]+black_boxes[i - 2][2], 0, white_loc[i] - (black_boxes[i - 2][0]+black_boxes[i - 2][2]), 1.1 * black_boxes[i - 2][3])
-                bottom_box=(white_x,1.1*black_boxes[i-2][3],white_width,height-1.1*black_boxes[i-2][3])
-                total_top.append(top_box)
-                total_bottom.append(bottom_box)
-            elif (i == 3 or ((i - 3) % 7 == 0) and i < 52) or (i == 6 or ((i - 6) % 7 == 0) and i < 52):
-                index = near_white(white_x, black_boxes)
-                top_box = (white_x + 1, 0, black_boxes[index][0] - white_x - 1, 1.1 * black_boxes[index][3])
-                bottom_box=(white_x,1.1*black_boxes[index][3],white_width+2,height-1.1*black_boxes[index][3])
-                total_top.append(top_box)
-                total_bottom.append(bottom_box)
-
-            elif (i == 4 or ((i - 4) % 7 == 0) and i < 52) or (i == 7 or ((i - 7) % 7 == 0) and i < 52) or (i == 8 or ((i - 8) % 7 == 0) and i < 52):
-                index = near_white(white_x, black_boxes)
-                index = min(len(black_boxes)-2,index)
+            index=wh_dict[i]
+            if (((i%7== 3) or (i%7==6)) and i < 52) or i==1:
+                top_box = (white_x, 0, black_boxes[index][0] - white_x, 1.1 * black_boxes[index][3]) #---(x,y,w,h)
+                bottom_box=(white_x,1.1*black_boxes[index][3],white_width,height-1.1*black_boxes[index][3])
+            elif i%7==4 or i%7==0 or i%7==1:
                 top_box = (black_boxes[index][0]+black_boxes[index][2], 0, black_boxes[index+1][0] - (black_boxes[index][0]+black_boxes[index][2]) - 1, 1.1 * black_boxes[index][3])
                 bottom_box=(white_x,1.1*black_boxes[index][3],white_width+2,height-1.1*black_boxes[index][3])
-                total_top.append(top_box)
-                total_bottom.append(bottom_box)
-            elif (i == 5 or ((i - 5) % 7 == 0) and i < 52) or (i == 9 or ((i - 9) % 7 == 0) and i < 52) or (i == 8 or ((i - 8) % 7 == 0) and i < 52):
-                index = near_white(white_x, black_boxes)
+            elif i%7==5 or i%7==2 or i==2:
                 top_box = (black_boxes[index][0]+black_boxes[index][2], 0, white_loc[i] - (black_boxes[index][0]+black_boxes[index][2]) - 1, 1.1 * black_boxes[index][3])
                 bottom_box=(white_x,1.1*black_boxes[index][3],white_width+2,height-1.1*black_boxes[index][3])
-                total_top.append(top_box)
-                total_bottom.append(bottom_box)
-                #----最后一个框
+                
+        #----最后一个框
             else:
                 top_box = (white_x + 1, 0, white_loc[i] - white_x - 1, 1.1 * black_boxes[35][3])
                 bottom_box = (white_x + 1, 1.1 * black_boxes[35][3], white_loc[i] - white_x - 1, height - 1.1 * black_boxes[35][3])
-                total_top.append(top_box)
-                total_bottom.append(bottom_box)
+                
+            total_top.append(top_box)
+            total_bottom.append(bottom_box)
 
         white_loc = np.array(white_loc,dtype=np.int32)
         black_boxes = np.array(black_boxes,dtype=np.int32)
         total_top = np.array(total_top,dtype=np.int32)
         total_bottom = np.array(total_bottom,dtype=np.int32)
+        
         return  white_loc,black_boxes,total_top,total_bottom
     
     def find_black_boxes(self,ori_img):
@@ -150,6 +157,7 @@ class BwLabel(object):
         half_width1 = black_boxes[4][2]    #T1中第四个黑键被均分,从该位置开始算区域起始位置
         keybegin = black_loc[4] + half_width1 / 2.0-7.0 * whitekey_width1
         for i in range(10):
+            #---这里不能加int啊，加了之后eg-0.5负数会变成0，这样是不小于0的
             if int(keybegin + i * whitekey_width1) < 0:
                 white_loc.append(1)
             else:
@@ -163,6 +171,7 @@ class BwLabel(object):
             for j in range(1,8):
                 white_loc.append(keybegin1 + j * whitekey_width2)
             if i == 5:  #----最后一次循环将钢琴最后一个白键加上
+            #---直接用一个min()就可以去掉判断语句了
                 if width < int(keybegin1 + 8 * whitekey_width2):
                     white_loc.append(width - 1)
                 else:

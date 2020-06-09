@@ -37,9 +37,7 @@ class ModelProduct(object):
         
     def load_det_hand_model(self):
         self.hand_net = build_s3fd('test',5)
-        checkpoint=torch.load('./seg_hand_resnet18.pth',map_location='cpu')
-        embed()
-        self.hand_net.load_state_dict(checkpoint)
+        self.hand_net.load_state_dict(torch.load('./seg_hand_resnet18.pth'))
         self.hand_net.eval()
         embed()
         if torch.cuda.is_available():

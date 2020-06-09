@@ -10,10 +10,13 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from torch.autograd import Variable
-
-from .layers import *
+import sys
+sys.path.append('../')
+sys.path.append('../../')
+from layers import *
 from config import cfg
 import numpy as np
+from IPython import embed
 
 class S3FD(nn.Module):
     """Single Shot Multibox Architecture
@@ -146,8 +149,11 @@ class S3FD(nn.Module):
        
         if self.phase == 'test':
             output = self.detect(
+                #----(batch,num_anchors,4)
                 loc.view(loc.size(0), -1, 4),                   # loc preds
+                #---(batch,num_anchors,2)
                 self.softmax(cls_conf.view(cls_conf.size(0), -1,2)),
+                #---(batch,num_anchors,3)
                 self.softmax(lr_conf.view(lr_conf.size(0),-1,3)),
                 self.priors.type(type(x.data))                  # default boxes
             )
@@ -260,8 +266,17 @@ def build_s3fd(phase, num_classes=2):
 
 
 if __name__ == '__main__':
-    net = build_s3fd('train', num_classes=5)
+
+    device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    
+    inputs = torch.randn(1, 3, 220, 220).to(device)
+    net = build_s3fd('test', num_classes=5).to(device)
     print(net)
-    inputs = Variable(torch.randn(4, 3, 640, 640))
+    print(device)
+    net.eval()
+    import time 
+    begin=time.time()    
     output = net(inputs)
+    print(output.size())
+    print("it cos {} s".format(time.time()-begin))
 

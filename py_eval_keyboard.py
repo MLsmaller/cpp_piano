@@ -76,21 +76,58 @@ def process2(mask):
 
 
 if __name__=='__main__':
+    img_dir="/data/nextcloud/dbc2017/files/project/videos_frams/"
+    img_dirs=[os.path.join(img_dir,x) for x in os.listdir(img_dir)]
+    light_thresh=20
+    for video_path in img_dirs:
+        if not os.path.basename(video_path)=='video1':continue
+        img_paths=[os.path.join(video_path,x) for x in os.listdir(video_path)
+                  if x.endswith(('.png','.jpg'))]
+        img_paths.sort()
+        light=[]
 
-    img_paths='./mask_imgs'
-    img_paths=[os.path.join(img_paths,x) for x in os.listdir(img_paths)
-            if x.endswith(('.png','.jpg'))]
+        img1=cv2.imread(img_paths[-10],0)
+        img2=cv2.imread(img_paths[-1],0)
+        light1=cv2.mean(img1)[0]
+        light2=cv2.mean(img2)[0]
+        #----还需要解决一个问题，有的视频最后才出现没有手的图像，如果从头开始遍历的话需要时间较长
 
-    for img_path in img_paths:
-        if not os.path.basename(img_path)=='post1_0000.png': continue
-        print(img_path)
-        mask=cv2.imread(img_path)
-        result=process2(mask)
-        rect=result['keyboard_rect']
-        cv2.rectangle(mask,(rect[0],rect[1]),(rect[2],rect[3]),(0,0,255),3) 
-        cv2.imwrite("./py_rect.png",mask)
-        break
+        # embed()
+        for path in img_paths:
+            # print(path)
+            img=cv2.imread(path)
+            img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            light.append(cv2.mean(img)[0])
+        avg_light=np.mean(light)
+
+        print(avg_light)
+        for path in img_paths:
+            img=cv2.imread(path)
+            img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            cur_light=cv2.mean(img)[0]
+            if abs(cur_light-avg_light)<light_thresh:
+                print('cur_light is {}'.format(cur_light))
+                print(path)
+                break
+        # embed()
+
+
+
+    # img_paths='./mask_imgs'
+    # img_paths=[os.path.join(img_paths,x) for x in os.listdir(img_paths)
+    #         if x.endswith(('.png','.jpg'))]
+
+    # for img_path in img_paths:
+    #     if not os.path.basename(img_path)=='post1_0000.png': continue
+    #     print(img_path)
+    #     mask=cv2.imread(img_path)
+    #     result=process2(mask)
+    #     rect=result['keyboard_rect']
+    #     cv2.rectangle(mask,(rect[0],rect[1]),(rect[2],rect[3]),(0,0,255),3) 
+    #     cv2.imwrite("./py_rect.png",mask)
+    #     break
         
+
 
 
 # img=cv2.imread('./0146.jpg')

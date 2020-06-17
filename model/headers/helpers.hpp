@@ -11,6 +11,7 @@
 
 using namespace cv;
 
+vector<Rect> find_black_boxes1(Mat &ori_img,vector<int> &black_loc);
 float get_light(vector<cv::String> fn);
 Keyboard_ResInfo find_base_img(KeyBoard keyboard,vector<cv::String> fn);
 void find_key_loc(Mat &base_img);

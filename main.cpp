@@ -18,8 +18,7 @@ using namespace torch;
 
 int main(){
 
-    // cv::String image_paths="/data/nextcloud/dbc2017/files/project/keyboard_images/";
-    cv::String image_paths="/data/nextcloud/dbc2017/files/project/videos_frams/0/";
+    cv::String image_paths="/data/nextcloud/dbc2017/files/project/videos_frams/video1/";
     vector<cv::String> fn;
     glob(image_paths,fn,false);
 

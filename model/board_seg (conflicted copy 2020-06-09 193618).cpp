@@ -86,11 +86,11 @@ Keyboard_Info KeyBoard::post_process(Mat image,torch::Tensor mask){
     
     resize(save_mask,save_mask,ori_size,0,0,INTER_NEAREST); //现在存的时候就是和原图一样大小
     
-	//--save img
-	// string save_path="/data/nextcloud/dbc2017/files/project/";
+	// //--save img
+	// string save_path="/data/nextcloud/dbc2017/files/project/keyboard_images/mask_imgs/";
 	// stringstream str;
 	// str << save_path << setw(4) << setfill('0') << right << frames_nums << ".png";
-    // cout<<"save_path is "<<str.str()<<endl;
+    // // cout<<"save_path is "<<str.str()<<endl;
     // cv::imwrite(str.str(),save_mask);
     // frames_nums++;
 
@@ -161,8 +161,7 @@ Keyboard_Info KeyBoard::post_process1(Mat image,torch::Tensor mask){
     Mat save_mask=mask_img.clone();
     save_mask.setTo(255,save_mask>0);  //大于0的像素设置为255
     resize(save_mask,save_mask,ori_size,0,0,INTER_NEAREST); //现在存的时候就是和原图一样大小
-    
-	// string save_path="/data/nextcloud/dbc2017/files/project/post1_";
+    // string save_path="/data/nextcloud/dbc2017/files/project/keyboard_images/mask_imgs/post1_";
 	// stringstream str;
 	// str << save_path << setw(4) << setfill('0') << right << (frames_nums-1) << ".png";
     // cv::imwrite(str.str(),save_mask);
@@ -185,7 +184,7 @@ Keyboard_Info KeyBoard::post_process1(Mat image,torch::Tensor mask){
 
 	Point lt, lb, rt, rb;
 	if (board_contours.size() > 500) {
-		vector<Point> keyboard_rect=order_points(board_contours);	
+		vector<Point> keyboard_rect=order_points(board_contours);		
 		lt = keyboard_rect[0], lb = keyboard_rect[1];
 		rt = keyboard_rect[2], rb = keyboard_rect[3];
         if (abs(lt.y - rt.y) > 5 || abs(rb.y - lb.y) > 5) {
@@ -258,8 +257,7 @@ Keyboard_Info KeyBoard::post_process2(Mat image,torch::Tensor mask){
     Mat save_mask=mask_img.clone();
     save_mask.setTo(255,save_mask>0);  //大于0的像素设置为255
     resize(save_mask,save_mask,ori_size,0,0,INTER_NEAREST); //现在存的时候就是和原图一样大小
-    
-	// string save_path="/data/nextcloud/dbc2017/files/project/post2_";
+    // string save_path="/data/nextcloud/dbc2017/files/project/keyboard_images/mask_imgs/post2_";
 	// stringstream str;
 	// str << save_path << setw(4) << setfill('0') << right << (frames_nums-1) << ".png";
     // cv::imwrite(str.str(),save_mask);
@@ -408,6 +406,7 @@ Keyboard_Info KeyBoard::detect_keyboard(Mat image){
 
 	keyboard_info1.rotated_img=rotated_img.clone();
 	keyboard_info1.rote_M=keyboard_info.rote_M.clone();
+
     if (keyboard_info1.flag==false){
 		return keyboard_info1;
 	}	
@@ -425,7 +424,7 @@ Keyboard_Info KeyBoard::detect_keyboard(Mat image){
     if (keyboard_info2.flag==false){
 		return keyboard_info2;
 	}	
-	keyboard_info2.warp_M=keyboard_info1.warp_M.clone();
+	keyboard_info2.warp_M=keyboard_info1.warp_img.clone();
 	keyboard_info2.rote_M=keyboard_info.rote_M.clone();
 	keyboard_info2.warp_img=warp_img.clone();
 	keyboard_info2.rotated_img=rotated_img.clone();

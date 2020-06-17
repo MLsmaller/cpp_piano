@@ -78,6 +78,5 @@ int main(int argc,char **argv) {
 		video_to_frame(video_paths[i],save_path,flag);
 	}
 
-
 	return 0;
 }

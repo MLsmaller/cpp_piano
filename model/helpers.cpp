@@ -11,11 +11,14 @@
 
 using namespace std;
 using namespace cv;
+vector<Rect> find_black_boxes1(Mat &ori_img,vector<int> &black_loc);
+vector<Rect> find_black_boxes(Mat &ori_img,vector<int> &black_loc);
 
 float get_light(vector<cv::String> fn){
     vector<float>ave_light;
     for(std::size_t i=0;i<fn.size();i++){
         Mat img=imread(fn[i],0);  //--for gray
+        //--mean()返回的是通道的均值,现在是灰度图像，就一个通道，因此取.val[0]，下标为0
         Scalar scalar=mean(img);
         ave_light.push_back(scalar.val[0]);
     }
@@ -37,48 +40,53 @@ Keyboard_ResInfo find_base_img(KeyBoard keyboard,vector<cv::String> fn){
     int count_frame=0;
     // int_
     Mat base_img,image;
-    
+
+    //这个值可以调整，认为当前图像的亮度与整个视频的平均亮度相差小于20时此次为键盘亮度较好的图像
+    //有些数据集前面是黑的或者光线不好，有些前面是一些其他东西，很亮
+    int light_thresh=20;   //--可以适当调大，video中钢琴图像是最多的，因此第一张钢琴图像亮度接近平均亮度
     float ave_light=get_light(fn);
+    Rect rect;
     for(std::size_t i=0;i<fn.size();i++){
+        count_frame++;
         std::string path=fn[i];
 	    string::size_type iPos = path.find_last_of("/") + 1;
 	    string filename = path.substr(iPos, path.length() - iPos);
-        
-        Mat gray_img=imread(path,0);  //--for gray
-        Scalar scalar=mean(gray_img);     
-
-        //---这个问题需要解决0.0
-        //---对于网上下载的视频数据不合适，因为那种一开头反而更亮，与论文的数据集不一样，钢琴图片还没这么亮
-        //----可以采用策略统计出所有图片的亮度，得到一个出现最多次数的亮度，如果当前图片亮度与该亮度相差<20则开始坚持
-
-        //---排除掉路径不包含.jpg和图像亮度小于平均均值的图像（因为论文数据集一开始图片亮度低，对于检测黑键不太好）
-        if((filename.find(".jpg")>1000)||(scalar.val[0]<ave_light)){
-            continue;
-        }
-
-
         // if (filename!="0156.jpg"){
         //     continue;
         // }
 
-        cout<<fn[i]<<endl;
+        Mat gray_img=imread(path,0);  //--for gray
+        Scalar scalar=mean(gray_img);     
+
+        //---还需要解决一个问题，有的视频最后才出现没有手的图像，如果从头开始遍历的话需要时间较长
+        //--如果整个图像中钢琴上面都有手的话可以通过插值之类的将手那个区域轮廓检测出来然后补上黑键和白键的像素0.0
+
+        //---对于网上下载的视频数据不合适，因为那种一开头反而更亮，与论文的数据集不一样，钢琴图片还没这么亮
+        //----可以采用策略统计出所有图片的亮度，得到一个出现最多次数的亮度，如果当前图片亮度与该亮度相差<20则开始坚持
+
+        //---排除掉路径不包含.jpg和图像亮度不好的图片,要选择较好的背景图，这样有利于检测黑/白键
+        if((filename.find(".jpg")>1000)||(abs(scalar.val[0]-ave_light)>light_thresh)){
+            continue;
+        }
+
+
         image=imread(fn[i]);
         keyboard_info=keyboard.detect_keyboard(image);
         if (keyboard_info.flag==false){
             continue;
         }
-        count_frame++;
-        Rect rect=keyboard_info.keyboard_rect;
+        cout<<"the first detect keyboard img is "<<fn[i]<<endl;        
+        rect=keyboard_info.keyboard_rect;
         Mat image_copy=image.clone();
 
-        int num_pixels=0;
+        // int num_pixels=0;
         if (keyboard_info.rote_M.cols==0){
             base_img=image_copy(rect);
             result_Info.base_img=base_img.clone();
             result_Info.img=image_copy.clone();
-            result_Info.count_frame=count_frame;
+            result_Info.count_frame=count_frame-1;
             result_Info.rect=rect;
-            num_pixels =handseg.detect_hand(image_copy,rect);
+            // num_pixels =handseg.detect_hand(image_copy,rect);
         }
         else{
             Mat rote_M=keyboard_info.rote_M.clone();
@@ -87,10 +95,10 @@ Keyboard_ResInfo find_base_img(KeyBoard keyboard,vector<cv::String> fn){
                 base_img=rotated_img(rect);
                 result_Info.base_img=base_img.clone();
                 result_Info.img=rotated_img.clone();
-                result_Info.count_frame=count_frame;
+                result_Info.count_frame=count_frame-1;
                 result_Info.rect=rect;
                 result_Info.rote_M=rote_M.clone();
-                num_pixels =handseg.detect_hand(rotated_img,rect);
+                // num_pixels =handseg.detect_hand(rotated_img,rect);
             }
             else{
                 Mat warp_M=keyboard_info.warp_M.clone();
@@ -98,21 +106,100 @@ Keyboard_ResInfo find_base_img(KeyBoard keyboard,vector<cv::String> fn){
                 base_img=warp_img(rect);
                 result_Info.base_img=base_img.clone();
                 result_Info.img=warp_img.clone();
-                result_Info.count_frame=count_frame;
+                result_Info.count_frame=count_frame-1;
                 result_Info.rect=rect;
                 result_Info.rote_M=rote_M.clone();
                 result_Info.warp_M=warp_M.clone();     
-                num_pixels =handseg.detect_hand(warp_img,rect); 
+                // num_pixels =handseg.detect_hand(warp_img,rect); 
                 //----for test----
             }
         }
+        break;
+    }
 
-        if (num_pixels<30){   //---认为键盘中没有手，适合当做背景
-            stringstream str;
-            str<<"./rect_mask"<<setw(4)<<setfill('0')<<right<<i<<".png";
-            cout<<str.str()<<endl;
-            imwrite(str.str(),base_img);        
-            return result_Info;
+
+//--------------------------------------------------------------------------------------
+    //---得到了rect,判断当前图像是不是背景，有时候背景在最后面，如果从头开始遍历耗时
+    //---找到第一张能检测到36个黑键的图像，也可以设定开始遍历，如果从头开始几十张图像都没找到则从后面开始找
+    int nums_thresh=0,nums=0;
+    int Tostop=20;
+    for(std::size_t i=0;i<fn.size();i++){    
+        if(i<result_Info.count_frame){  //#--从第一个检测到rect的图片开始算
+            continue;
+        }
+        nums_thresh++;
+
+        std::string path=fn[i];
+        //---顺着遍历30次还没找到则反向遍历背景图
+        // cout<<"the nums_thresh is "<<nums_thresh<<endl;
+        if(nums_thresh>Tostop){
+            cout<<"the index is "<<int(fn.size()-nums-1)<<endl;
+            path=fn[int(fn.size()-nums-1)];
+            nums++;
+        }        
+
+        Mat image=imread(path);
+        Mat image_copy=image.clone();
+        if (keyboard_info.rote_M.cols==0){
+            base_img=image_copy(rect);
+        }
+        else{
+            Mat rote_M=keyboard_info.rote_M.clone();
+            Mat rotated_img;
+            warpAffine(image, rotated_img, rote_M, image.size());            
+            if (keyboard_info.warp_M.cols==0){
+                base_img=rotated_img(rect);
+            }
+            else{
+                Mat warp_M=keyboard_info.warp_M.clone();
+                Mat warp_img;      
+                warpPerspective(rotated_img, warp_img, warp_M, image.size());
+                base_img=warp_img(rect);
+            }
+        }
+
+        //----直到第一个能检测到键盘的图像(可能包含手)
+        Mat ori_img=base_img.clone();
+        int height=ori_img.rows,width=ori_img.cols;
+        vector<int> black_loc;
+        
+        //--新的find_black_boxes1没有对阈值进行多次设定,速度会快点
+        // vector<Rect>black_boxes=find_black_boxe1s(ori_img,black_loc);
+        vector<Rect>black_boxes=find_black_boxes(ori_img,black_loc);
+
+        if (black_boxes.size()!=36){
+            Mat blank=Mat::zeros(height,width,ori_img.type());
+            double c=1.3,b=3;  //要看清楚函数传入的参数类型,double/int/float各不相同，不然会出错
+            Mat dst_img;
+            addWeighted(ori_img,c,blank,1-c,b,dst_img);
+            black_boxes=find_black_boxes(dst_img,black_loc);
+        }
+
+        if(black_boxes.size()==37){
+            int area1=black_boxes[0].width*black_boxes[0].height;
+            int area2=black_boxes.back().width*black_boxes.back().height;
+            //----有可能裁剪的钢琴区域左/右边会出现一点黑色区域，检测出来了
+            if (area1>area2){
+                black_boxes.erase(black_boxes.end());
+            }
+            else{
+                black_boxes.erase(black_boxes.begin());
+            }
+        }
+        // cout<<"cur img is "<<path<<endl;
+        // cout<<"the black boxes is "<<black_boxes.size()<<endl;
+        if (black_boxes.size()!=36){
+            continue;
+        }
+        else{
+            // for(size_t j=0;j<black_boxes.size();j++){
+            //     rectangle(ori_img,black_boxes[j],Scalar(0,0,255),1);
+
+            // }
+            // imwrite("./black.jpg",ori_img);
+            result_Info.base_img=base_img.clone();
+            cout<<"the base frame is "<<path<<endl;
+            break;
         }
     }
 
@@ -202,6 +289,26 @@ vector<Rect> find_black_keys(Mat &base_img){
 bool rect_compare(Rect i, Rect j) {
 	return (i.x < j.x);
 }
+
+
+vector<Rect> find_black_boxes1(Mat &ori_img,vector<int> &black_loc){
+    int thresh=125;
+    vector<Rect> black_boxes;
+   
+    Mat base_img=ori_img.clone();
+    // int height=ori_img.rows,width=ori_img.cols;
+    cvtColor(base_img,base_img,COLOR_BGR2GRAY);
+    base_img=remove_region(base_img);
+    threshold(base_img, base_img, thresh, 255, THRESH_BINARY_INV);
+    black_boxes=find_black_keys(base_img);
+    //--按照横坐标进行排序
+    sort(black_boxes.begin(), black_boxes.end(), rect_compare);
+    for(std::size_t i=0;i<black_boxes.size();i++){
+        black_loc.push_back(black_boxes[i].x);
+    }
+    return black_boxes;
+}
+
 
 vector<Rect> find_black_boxes(Mat &ori_img,vector<int> &black_loc){
     int thresh=125;
